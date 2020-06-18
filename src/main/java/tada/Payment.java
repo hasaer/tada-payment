@@ -1,7 +1,16 @@
 package tada;
 
 import javax.persistence.*;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.BeanUtils;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.util.MimeTypeUtils;
+import tada.config.kafka.KafkaProcessor;
+
 import java.util.List;
 
 @Entity
@@ -17,16 +26,54 @@ public class Payment {
 
     @PostPersist
     public void onPostPersist(){
-        PaymentCanceled paymentCanceled = new PaymentCanceled();
-        BeanUtils.copyProperties(this, paymentCanceled);
-        paymentCanceled.publishAfterCommit();
-
-
         PaymentDone paymentDone = new PaymentDone();
-        BeanUtils.copyProperties(this, paymentDone);
-        paymentDone.publishAfterCommit();
+        paymentDone.setPaymentId(this.getPaymentId());
+        paymentDone.setCharge(this.getCharge());
+        paymentDone.setPaymentStatus(this.getPaymentStatus());
+        paymentDone.setCallId(this.getCallId());
 
+        ObjectMapper objectMapper = new ObjectMapper();
+        String json = null;
 
+        try {
+            json = objectMapper.writeValueAsString(paymentDone);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON format exception", e);
+        }
+
+        KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
+        MessageChannel outputChannel = processor.outboundTopic();
+
+        outputChannel.send(MessageBuilder
+                .withPayload(json)
+                .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
+                .build());
+    }
+
+    @PostUpdate
+    public void onPostUpdate() {
+        PaymentCanceled paymentCanceled = new PaymentCanceled();
+        paymentCanceled.setPaymentId(this.getPaymentId());
+        paymentCanceled.setCharge(this.getCharge());
+        paymentCanceled.setCallId(this.getCallId());
+        paymentCanceled.setPaymentStatus("Canceled");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String json = null;
+
+        try {
+            json = objectMapper.writeValueAsString(paymentCanceled);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON format exception", e);
+        }
+
+        KafkaProcessor processor = Application.applicationContext.getBean(KafkaProcessor.class);
+        MessageChannel outputChannel = processor.outboundTopic();
+
+        outputChannel.send(MessageBuilder
+                .withPayload(json)
+                .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
+                .build());
     }
 
 
