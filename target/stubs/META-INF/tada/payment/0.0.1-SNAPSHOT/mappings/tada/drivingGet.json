@@ -1,0 +1,21 @@
+{
+  "id" : "6dbbf235-7699-44d3-86e9-6b226fa0d29c",
+  "request" : {
+    "url" : "/payments/1",
+    "method" : "GET",
+    "headers" : {
+      "Content-Type" : {
+        "matches" : "application/json.*"
+      }
+    }
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"charge\":\"20000\",\"paymentId\":1,\"paymentStatus\":\"OKAY\"}",
+    "headers" : {
+      "Content-Type" : "application/json"
+    },
+    "transformers" : [ "response-template" ]
+  },
+  "uuid" : "6dbbf235-7699-44d3-86e9-6b226fa0d29c"
+}

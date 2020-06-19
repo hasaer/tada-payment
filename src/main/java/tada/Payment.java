@@ -26,6 +26,12 @@ public class Payment {
 
     @PostPersist
     public void onPostPersist(){
+        try {
+            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         PaymentDone paymentDone = new PaymentDone();
         paymentDone.setPaymentId(this.getPaymentId());
         paymentDone.setCharge(this.getCharge());
